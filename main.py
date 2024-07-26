@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, request, jsonify
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -46,7 +46,30 @@ class PredictionSmoother:
 
 smoother = PredictionSmoother(window_size=5)
 
+capture_enabled = False
+predicted_class = None
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/toggle_capture', methods=['POST'])
+def toggle_capture():
+    global capture_enabled
+    capture_enabled = not capture_enabled
+    return ('', 204)
+
+@app.route('/get_prediction', methods=['GET'])
+def get_prediction():
+    global predicted_class
+    # Ensure prediction is JSON serializable
+    if predicted_class is not None:
+        return jsonify({'prediction': int(predicted_class)})
+    else:
+        return jsonify({'prediction': None})
+
 def generate_frames():
+    global capture_enabled, predicted_class
     cap = cv2.VideoCapture(0)
     while True:
         success, frame = cap.read()
@@ -65,14 +88,12 @@ def generate_frames():
                 # Draw hand landmarks on the frame
                 mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                # Preprocess keypoints for model input
-                keypoints = preprocess_keypoints(hand_landmarks)
-                prediction = model.predict(keypoints)
-                smoothed_prediction = smoother.smooth(prediction)
-                predicted_class = np.argmax(smoothed_prediction, axis=1)[0]
-
-                # Display the prediction
-                cv2.putText(frame, f'Prediction: {predicted_class}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+                if capture_enabled:
+                    # Preprocess keypoints for model input
+                    keypoints = preprocess_keypoints(hand_landmarks)
+                    prediction = model.predict(keypoints)
+                    smoothed_prediction = smoother.smooth(prediction)
+                    predicted_class = np.argmax(smoothed_prediction, axis=1)[0]
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
@@ -80,10 +101,6 @@ def generate_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/video_feed')
 def video_feed():

@@ -6,12 +6,83 @@
       name="viewport"
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
-    <title>Hand Gesture Recognition</title>
+    <title>Sign Language Recognition</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
   </head>
   <body>
     <div class="container">
-      <h1>Hand Gesture Recognition</h1>
-      <img src="{{ url_for('video_feed') }}" width="100%" />
+      <h1>Hand Sign Recognition System</h1>
+      <h2>Project by SKYEDARKER</h2>
+      <p>
+        Sign Language is mainly used by deaf (hard hearing) and dumb people to
+        exchange information between their own community and with other people.
+        It is a language where people use their hand gestures to communicate as
+        they can't speak or hear. The goal of sign language recognition (SLR) is
+        to identify acquired hand motions and to continue until related hand
+        gestures are translated into text and speech. Here, static and dynamic
+        hand gestures for sign language can be distinguished. The human
+        community values both types of recognition, even if static hand gesture
+        recognition is easier than dynamic hand gesture recognition. By creating
+        Deep Neural Network designs (Convolution Neural Network designs), where
+        the model will learn to detect the hand motions images throughout an
+        epoch, we are using Deep Learning Computer Vision to recognize the hand
+        gestures. After the model successfully recognizes the motion, an English
+        text file is created that can subsequently be translated to speech. The
+        user can choose from a variety of translations for this paragraph. This
+        application can be used without an internet connection and is entirely
+        offline. With this model's improved efficiency, communication will be
+        easier for the deaf (hard of hearing) and disabled people. We shall
+        discuss the use of deep learning for sign language recognition in this
+        paper
+      </p>
+      <div class="video-container">
+        <div class="live-feed">
+          <h2>Live Feed</h2>
+          <img id="video-feed" src="{{ url_for('video_feed') }}" width="100%" />
+        </div>
+        <div class="prediction-container">
+          <h2>Prediction</h2>
+          <p id="prediction">No prediction yet</p>
+          <button id="toggle-button">Start Prediction</button>
+        </div>
+      </div>
+      <img
+        src="https://static.vecteezy.com/system/resources/previews/015/601/415/original/american-sign-language-number-hand-sign-language-counting-gesture-collection-vector.jpg"
+        alt="Hand Gesture"
+        class="project-image"
+      />
     </div>
+    />
+    <script>
+      let captureEnabled = false;
+
+      document
+        .getElementById("toggle-button")
+        .addEventListener("click", function () {
+          fetch("/toggle_capture", { method: "POST" });
+          captureEnabled = !captureEnabled;
+          document.getElementById("toggle-button").innerText = captureEnabled
+            ? "Pause Prediction"
+            : "Start Prediction";
+        });
+
+      async function fetchPrediction() {
+        const response = await fetch("/get_prediction");
+        const data = await response.json();
+        if (data.prediction !== null) {
+          document.getElementById(
+            "prediction"
+          ).innerText = `Prediction: ${data.prediction}`;
+        } else {
+          document.getElementById("prediction").innerText = "No prediction yet";
+        }
+      }
+
+      // Fetch predictions at a regular interval
+      setInterval(fetchPrediction, 1000);
+    </script>
   </body>
 </html>
